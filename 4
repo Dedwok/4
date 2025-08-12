@@ -1,0 +1,167 @@
+-- Создание базы данных
+CREATE DATABASE TourismManagement;
+GO
+
+USE TourismManagement;
+GO
+
+-- Таблица стран
+CREATE TABLE Countries (
+    CountryID INT PRIMARY KEY IDENTITY(1,1),
+    CountryName NVARCHAR(100) NOT NULL,
+    VisaRequired BIT DEFAULT 0,
+    Description NVARCHAR(MAX)
+);
+GO
+
+-- Таблица клиентов
+CREATE TABLE Clients (
+    ClientID INT PRIMARY KEY IDENTITY(1,1),
+    FirstName NVARCHAR(50) NOT NULL,
+    LastName NVARCHAR(50) NOT NULL,
+    Email NVARCHAR(100) UNIQUE,
+    Phone NVARCHAR(20) NOT NULL,
+    RegistrationDate DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- Таблица туров
+CREATE TABLE Tours (
+    TourID INT PRIMARY KEY IDENTITY(1,1),
+    CountryID INT FOREIGN KEY REFERENCES Countries(CountryID),
+    Title NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(MAX),
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    IsActive BIT DEFAULT 1,
+    CONSTRAINT CHK_Dates CHECK (EndDate > StartDate)
+);
+GO
+
+-- Таблица заказов
+CREATE TABLE Orders (
+    OrderID INT PRIMARY KEY IDENTITY(1,1),
+    ClientID INT FOREIGN KEY REFERENCES Clients(ClientID),
+    TourID INT FOREIGN KEY REFERENCES Tours(TourID),
+    OrderDate DATETIME DEFAULT GETDATE(),
+    PersonsCount INT DEFAULT 1,
+    TotalPrice DECIMAL(10,2) NOT NULL,
+    Status NVARCHAR(20) DEFAULT 'New',
+    CONSTRAINT CHK_PersonsCount CHECK (PersonsCount > 0)
+);
+GO
+
+Next. 1.2 MainModule.pas - модуль данных:
+
+unit MainModule;
+
+interface
+
+uses
+  System.SysUtils, System.Classes, FireDAC.Stan.Intf, FireDAC.Stan.Option,
+  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
+  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.Phys.MSSQL,
+  FireDAC.Phys.MSSQLDef, FireDAC.VCLUI.Wait, Data.DB, FireDAC.Comp.Client;
+
+type
+  TWebMainModule = class(TWebDataModule)
+    FDConnection1: TFDConnection;
+    procedure WebDataModuleCreate(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    function GetTours: TFDQuery;
+    function GetCountries: TFDQuery;
+    function CreateOrder(ClientID, TourID, Persons: Integer): Boolean;
+  end;
+
+implementation
+
+{%CLASSGROUP 'Vcl.Controls.TControl'}
+
+{$R *.dfm}
+
+procedure TWebMainModule.WebDataModuleCreate(Sender: TObject);
+begin
+  FDConnection1.Params.DriverID := 'MSSQL';
+  FDConnection1.Params.Database := 'TourismManagement';
+  FDConnection1.Params.UserName := 'sa';
+  FDConnection1.Params.Password := 'yourpassword';
+  FDConnection1.Params.Values['Server'] := 'localhost';
+  FDConnection1.Connected := True;
+end;
+
+function TWebMainModule.GetTours: TFDQuery;
+var
+  Query: TFDQuery;
+begin
+  Query := TFDQuery.Create(nil);
+  Query.Connection := FDConnection1;
+  Query.SQL.Text := 'SELECT * FROM Tours WHERE IsActive = 1';
+  Query.Open;
+  Result := Query;
+end;
+
+function TWebMainModule.GetCountries: TFDQuery;
+var
+  Query: TFDQuery;
+begin
+  Query := TFDQuery.Create(nil);
+  Query.Connection := FDConnection1;
+  Query.SQL.Text := 'SELECT * FROM Countries';
+  Query.Open;
+  Result := Query;
+end;
+
+function TWebMainModule.CreateOrder(ClientID, TourID, Persons: Integer): Boolean;
+var
+  Query: TFDQuery;
+  TourPrice: Double;
+begin
+  Result := False;
+  
+  // Получаем цену тура
+  Query := TFDQuery.Create(nil);
+  try
+    Query.Connection := FDConnection1;
+    Query.SQL.Text := 'SELECT Price FROM Tours WHERE TourID = :TourID';
+    Query.ParamByName('TourID').AsInteger := TourID;
+    Query.Open;
+    TourPrice := Query.FieldByName('Price').AsFloat;
+    Query.Close;
+
+    // Создаем заказ
+    Query.SQL.Text := 'INSERT INTO Orders (ClientID, TourID, PersonsCount, TotalPrice) ' +
+                      'VALUES (:ClientID, :TourID, :Persons, :TotalPrice)';
+    Query.ParamByName('ClientID').AsInteger := ClientID;
+    Query.ParamByName('TourID').AsInteger := TourID;
+    Query.ParamByName('Persons').AsInteger := Persons;
+    Query.ParamByName('TotalPrice').AsFloat := TourPrice * Persons;
+    Query.ExecSQL;
+    
+    Result := True;
+  finally
+    Query.Free;
+  end;
+end;
+
+end.
+-- Вставка тестовых данных
+INSERT INTO Countries (CountryName, VisaRequired, Description)
+VALUES 
+('Италия', 1, 'Страна с богатой культурой и историей'),
+('Турция', 0, 'Популярное направление для пляжного отдыха');
+
+INSERT INTO Clients (FirstName, LastName, Email, Phone)
+VALUES
+('Иван', 'Иванов', 'ivanov@example.com', '+79101234567'),
+('Петр', 'Петров', 'petrov@example.com', '+79107654321');
+
+INSERT INTO Tours (CountryID, Title, Description, StartDate, EndDate, Price)
+VALUES
+(1, 'Рим - Флоренция - Венеция', 'Экскурсионный тур по Италии', '2023-09-01', '2023-09-10', 120000),
+(2, 'Анталия - все включено', 'Пляжный отдых в 5* отеле', '2023-08-15', '2023-08-29', 85000);
+GO
+
+1.3
