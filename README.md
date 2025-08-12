@@ -12,9 +12,10 @@ Ruby on Rails - для быстрой разработки
 
 
 Критерии сравнения:
+
 Платформа	Производительность	Кривая обучения	Экосистема	Использование в компаниях
-React	Высокая	Средняя	Огромная	LinkedIn, Airbnb, Netflix
-Angular	Высокая	Крутая	Большая	Google, Forbes, Xbox
-Vue	Очень высокая	Плавная	Растущая	Alibaba, GitLab, Nintendo
-ASP.NET	Высокая	Средняя	Большая	Microsoft, StackOverflow
-Rails	Средняя	Плавная	Большая	GitHub, Shopify, Basecamp
+React	    Высокая            	Средняя	        Огромная	  LinkedIn, Airbnb, Netflix
+Angular	  Высокая	            Крутая	        Большая	    Google, Forbes, Xbox
+Vue     	Очень высокая	      Плавная	        Растущая	  Alibaba, GitLab, Nintendo
+ASP.NET	  Высокая	            Средняя        	Большая   	Microsoft, StackOverflow
+Rails	    Средняя	            Плавная	        Большая	    GitHub, Shopify, Basecamp
