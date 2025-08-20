@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Туристическое агентство</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .tour { border: 1px solid #ddd; padding: 15px; margin: 10px; border-radius: 5px; }
+        .btn { background: #007bff; color: white; padding: 10px; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Туристическое агентство</h1>
+    
+    <div id="tours"></div>
+    
+    <script>
+        // Загрузка списка туров
+        fetch('/tourism/tours')
+            .then(response => response.json())
+            .then(tours => {
+                const toursContainer = document.getElementById('tours');
+                tours.forEach(tour => {
+                    toursContainer.innerHTML += `
+                        <div class="tour">
+                            <h3>${tour.Title}</h3>
+                            <p>Страна: ${tour.CountryName}</p>
+                            <p>Даты: ${tour.StartDate} - ${tour.EndDate}</p>
+                            <p>Цена: ${tour.Price} руб.</p>
+                            <button class="btn" onclick="bookTour(${tour.TourID})">Забронировать</button>
+                        </div>
+                    `;
+                });
+            });
+
+        function bookTour(tourId) {
+            const clientId = prompt('Введите ваш ID клиента:');
+            const persons = prompt('Количество человек:');
+            
+            fetch('/tourism/create_order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `client_id=${clientId}&tour_id=${tourId}&persons=${persons}`
+            })
+            .then(response => response.json())
+            .then(result => {
+                alert(result.status === 'success' ? 
+                    `Заказ создан! Номер заказа: ${result.order_id}` : 
+                    'Ошибка при создании заказа');
+            });
+        }
+    </script>
+</body>
+</html>
